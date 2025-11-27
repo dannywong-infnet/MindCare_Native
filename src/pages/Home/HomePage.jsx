@@ -1,94 +1,182 @@
-import { useState, useEffect, useContext } from "react";
-import { Link } from "react-router-dom";
-import style from "./home-page.module.css";
-import FotoDePerfil from "../../components/FotoDePerfil/FotoDePerfil";
-import Icon from "../../components/Icon/Icon";
-import NavBar from "../../components/NavBar/NavBar";
-import UsuarioContext from "../../context/UsuarioContext";
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import FotoDePerfil from '../../components/FotoDePerfil/FotoDePerfil';
+import Icon from '../../components/Icon/Icon';
+import NavBar from '../../components/NavBar/NavBar';
+import UsuarioContext from '../../context/UsuarioContext';
+import { loadPacientes } from '../../services/dataService';
 
-export default function HomePage({ user, goToPage }) {
-  // estado para salvar dados do usuário
+export default function HomePage() {
   const [usuario, setUsuario] = useState({});
-  // estado para renderizar a página após finalizar o fetch
   const [loading, setLoading] = useState(true);
+  const navigation = useNavigation();
 
   const usuarioContext = useContext(UsuarioContext);
   const nomeUsuario = usuarioContext.usuario.nomeUsuario;
 
   useEffect(() => {
-    // busca dados do usuário na base de dados
     const fetchDadosUsuario = async () => {
-      const response = await fetch(`users/pacientes/pacientes.json`);
-      const data = await response.json();
-      const paciente = Array.isArray(data)
-        ? data.find((p) => p.username === nomeUsuario)
-        : (data && data[nomeUsuario]) || null;
-      setUsuario(paciente || {});
-      setLoading(false);
+      try {
+        const data = await loadPacientes();
+        const paciente = Array.isArray(data)
+          ? data.find((p) => p.username === nomeUsuario)
+          : (data && data[nomeUsuario]) || null;
+        setUsuario(paciente || {});
+      } catch (error) {
+        console.error('Erro ao buscar dados do usuário:', error);
+      } finally {
+        setLoading(false);
+      }
     };
-    fetchDadosUsuario();
-  }, [usuarioContext]);
+    if (nomeUsuario) {
+      fetchDadosUsuario();
+    }
+  }, [nomeUsuario]);
 
-  function renderPage() {
+  if (loading) {
     return (
       <>
         <NavBar />
-        <div className={style.pageContainer}>
-          <div className={style.userSection}>
-            <h2 className={style.welcomeTitle}>Olá, {usuario.nome}!</h2>
-            <div className={style.userCard}>
-              <FotoDePerfil img={usuario.img} />
-              <div className={style.userDetails}>
-                <p>
-                  <b>
-                    {usuario.nome} {usuario.sobrenome}
-                  </b>
-                </p>
-                <p>
-                  <b>CPF:</b> {usuario.cpf}
-                </p>
-                <p>
-                  <b>Data de nascimento:</b> {usuario.dataNascimento}
-                </p>
-                <p>
-                  <b>Cidade:</b> {usuario.cidade} ({usuario.estado})
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className={style.actionsSection}>
-            <h3>O que você precisa hoje?</h3>
-            <div className={style.actionsGrid}>
-              <Link to="/buscarTerapeutas" style={{ textDecoration: "none" }}>
-                <div
-                  className={`${style.actionCard} ${style.terapeutas}`}
-                  // onClick={() => goToPage("BuscarTerapeutasPage")}
-                  style={{ cursor: "pointer" }}
-                >
-                  <Icon iconName="person_pin_circle" />
-                  <p>Buscar terapeutas</p>
-                </div>
-              </Link>
-              <Link to="/dashboard" style={{ textDecoration: "none" }}>
-                <div
-                  className={`${style.actionCard} ${style.agendamentos}`}
-                  // onClick={() => goToPage("DashboardPage")}
-                  style={{ cursor: "pointer" }}
-                >
-                  <Icon iconName="calendar_month" />
-                  <p>Consultar agendamentos</p>
-                </div>
-              </Link>
-              <div className={`${style.actionCard} ${style.reembolso}`}>
-                <Icon iconName="request_quote" />
-                <p>Solicitar reembolso</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <View style={styles.loadingContainer}>
+          <Text>Carregando...</Text>
+        </View>
       </>
     );
   }
 
-  return !loading && renderPage();
+  return (
+    <>
+      <NavBar />
+      <ScrollView style={styles.pageContainer}>
+        <View style={styles.userSection}>
+          <Text style={styles.welcomeTitle}>Olá, {usuario.nome}!</Text>
+          <View style={styles.userCard}>
+            <FotoDePerfil img={usuario.img} />
+            <View style={styles.userDetails}>
+              <Text style={styles.userDetailText}>
+                <Text style={styles.bold}>{usuario.nome} {usuario.sobrenome}</Text>
+              </Text>
+              <Text style={styles.userDetailText}>
+                <Text style={styles.bold}>CPF:</Text> {usuario.cpf}
+              </Text>
+              <Text style={styles.userDetailText}>
+                <Text style={styles.bold}>Data de nascimento:</Text> {usuario.dataNascimento}
+              </Text>
+              <Text style={styles.userDetailText}>
+                <Text style={styles.bold}>Cidade:</Text> {usuario.cidade} ({usuario.estado})
+              </Text>
+            </View>
+          </View>
+        </View>
+        <View style={styles.actionsSection}>
+          <Text style={styles.actionsTitle}>O que você precisa hoje?</Text>
+          <View style={styles.actionsGrid}>
+            <TouchableOpacity
+              style={[styles.actionCard, styles.terapeutas]}
+              onPress={() => navigation.navigate('BuscarTerapeutas')}
+            >
+              <Icon iconName="person_pin_circle" size={40} color="#926cfa" />
+              <Text style={styles.actionText}>Buscar terapeutas</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionCard, styles.agendamentos]}
+              onPress={() => navigation.navigate('Dashboard')}
+            >
+              <Icon iconName="calendar_month" size={40} color="#926cfa" />
+              <Text style={styles.actionText}>Consultar agendamentos</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionCard, styles.reembolso]}
+              onPress={() => navigation.navigate('Reembolso')}
+            >
+              <Icon iconName="request_quote" size={40} color="#926cfa" />
+              <Text style={styles.actionText}>Solicitar reembolso</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+    </>
+  );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pageContainer: {
+    flex: 1,
+    padding: 20,
+  },
+  userSection: {
+    marginBottom: 30,
+  },
+  welcomeTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    fontFamily: 'Ubuntu',
+  },
+  userCard: {
+    flexDirection: 'row',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
+    padding: 15,
+    gap: 15,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  userDetails: {
+    flex: 1,
+    gap: 8,
+  },
+  userDetailText: {
+    fontSize: 14,
+    fontFamily: 'Ubuntu',
+  },
+  bold: {
+    fontWeight: 'bold',
+  },
+  actionsSection: {
+    marginTop: 20,
+  },
+  actionsTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    fontFamily: 'Ubuntu',
+  },
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 15,
+    justifyContent: 'center',
+  },
+  actionCard: {
+    width: '48%',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 120,
+  },
+  terapeutas: {
+    backgroundColor: '#e8f4f8',
+  },
+  agendamentos: {
+    backgroundColor: '#f0e8ff',
+  },
+  reembolso: {
+    backgroundColor: '#fff4e6',
+  },
+  actionText: {
+    marginTop: 10,
+    fontSize: 14,
+    textAlign: 'center',
+    fontFamily: 'Ubuntu',
+    fontWeight: '500',
+  },
+});

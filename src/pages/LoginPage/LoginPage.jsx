@@ -1,94 +1,151 @@
-import { useContext, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import Logotipo from "../../components/Logotipo/Logotipo";
-import BannerCadastro from "../../components/BannerCadastro/BannerCadastro";
-import CampoInput from "../../components/CampoInput/CampoInput";
-import Botao from "../../components/Botao/Botao";
-import styles from "./login-page.module.css";
-import UsuarioContext from "../../context/UsuarioContext";
+import React, { useContext, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import Logotipo from '../../components/Logotipo/Logotipo';
+import BannerCadastro from '../../components/BannerCadastro/BannerCadastro';
+import CampoInput from '../../components/CampoInput/CampoInput';
+import Botao from '../../components/Botao/Botao';
+import UsuarioContext from '../../context/UsuarioContext';
+import { loadPacientes } from '../../services/dataService';
 
-export default function LoginPage({ goToPage, updateUser }) {
-  const [inputUsername, setInputUsername] = useState("");
-  const [inputPassword, setInputPassword] = useState("");
+export default function LoginPage() {
+  const [inputUsername, setInputUsername] = useState('');
+  const [inputPassword, setInputPassword] = useState('');
   const [isLoading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
-  const navigate = useNavigate();
+  const navigation = useNavigation();
 
   const { logIn } = useContext(UsuarioContext);
 
-  const onChangeUsername = (e) => setInputUsername(e.target.value);
-  const onChangePassword = (e) => setInputPassword(e.target.value);
-
-  const onClickAcessar = (e) => {
-    if (e && e.preventDefault) e.preventDefault();
-    setMessage("");
+  const onClickAcessar = async () => {
+    setMessage(null);
     setLoading(true);
 
-    fetch(`users/pacientes/pacientes.json`)
-      .then((response) => response.json())
-      .then((lista) => {
-        const user = Array.isArray(lista)
-          ? lista.find((p) => p.username === inputUsername)
-          : (lista && lista[inputUsername]) || null;
-        if (user && user.senha === inputPassword) {
-          //Atualiza o user, o qual sera passado para a home page
-          logIn(inputUsername);
-          navigate("/home", { replace: true });
-        } else {
-          setMessage("Senha não confere.");
-        }
-      })
-      .catch(() => setMessage("Usuário não encontrado."))
-      .finally(() => setLoading(false));
+    try {
+      const lista = await loadPacientes();
+      const user = Array.isArray(lista)
+        ? lista.find((p) => p.username === inputUsername)
+        : (lista && lista[inputUsername]) || null;
+      
+      if (user && user.senha === inputPassword) {
+        logIn(inputUsername);
+        navigation.replace('Home');
+      } else {
+        setMessage('Senha não confere.');
+      }
+    } catch (error) {
+      setMessage('Usuário não encontrado.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className={styles.loginPageContainer}>
-      <div className={styles.loginPageContent}>
-        <div className={styles.header}>
-          <Logotipo />
-          <BannerCadastro
-            className={styles.headerHeadings}
-            titulo="Entre na sua conta"
-            subtitulo="Ainda não tem cadastro?"
-            link="/cadastro"
-            texto="Cadastre-se"
-          />
-        </div>
-        <div className={styles.main}>
-          <form className={styles.loginFormContainer} onSubmit={onClickAcessar}>
-            <CampoInput
-              type="text"
-              placeholder="username"
-              name="username"
-              id="username"
-              autoComplete={"off"}
-              value={inputUsername}
-              onChange={onChangeUsername}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.loginPageContent}>
+          <View style={styles.header}>
+            <Logotipo />
+            <BannerCadastro
+              titulo="Entre na sua conta"
+              subtitulo="Ainda não tem cadastro?"
+              link="Cadastro"
+              texto="Cadastre-se"
             />
+          </View>
+          <View style={styles.main}>
+            <View style={styles.loginFormContainer}>
+              <CampoInput
+                placeholder="username"
+                value={inputUsername}
+                onChangeText={setInputUsername}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
 
-            <CampoInput
-              type="password"
-              placeholder="senha"
-              name="senha"
-              id="senha"
-              autoComplete={"off"}
-              value={inputPassword}
-              onChange={onChangePassword}
-            />
+              <CampoInput
+                placeholder="senha"
+                value={inputPassword}
+                onChangeText={setInputPassword}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
 
-            <div className={styles.message}>
-              {isLoading && <p>Verificando credenciais...</p>}
-              {message && <p>{message}</p>}
-              <a>Esqueceu a senha?</a>
-            </div>
+              <View style={styles.message}>
+                {isLoading && <Text style={styles.loadingText}>Verificando credenciais...</Text>}
+                {message && <Text style={styles.errorText}>{message}</Text>}
+                <TouchableOpacity onPress={() => Alert.alert('Recuperar Senha', 'Funcionalidade em desenvolvimento')}>
+                  <Text style={styles.forgotPassword}>Esqueceu a senha?</Text>
+                </TouchableOpacity>
+              </View>
 
-            <Botao onClick={onClickAcessar} disabled={isLoading}>
-              Acessar
-            </Botao>
-          </form>
-        </div>
-      </div>
-    </div>
+              <Botao onPress={onClickAcessar} disabled={isLoading}>
+                Acessar
+              </Botao>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loginPageContent: {
+    maxWidth: '90%',
+    width: '100%',
+    gap: 32,
+  },
+  header: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  main: {
+    gap: 24,
+  },
+  loginFormContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  message: {
+    gap: 10,
+    padding: 5,
+    width: '90%',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#926cfa',
+    fontSize: 14,
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 14,
+  },
+  forgotPassword: {
+    fontFamily: 'Inter',
+    fontWeight: '500',
+    fontSize: 14,
+    textDecorationLine: 'underline',
+    color: '#926cfa',
+  },
+});

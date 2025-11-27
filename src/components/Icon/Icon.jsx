@@ -1,20 +1,24 @@
-export default function Icon(props) {
-  const variantClass = props.variant
-    ? `material-symbols-${props.variant}`
-    : "material-symbols-outlined";
+import React from 'react';
+import { MaterialIcons } from '@expo/vector-icons';
 
-  const style = {
-    color: props.color,
-    fontSize: props.fontSize,
-  };
+// Mapeamento de ícones Material Symbols para MaterialIcons
+const iconMap = {
+  'person_pin_circle': 'person-pin-circle',
+  'calendar_month': 'calendar-month',
+  'request_quote': 'request-quote',
+  'menu': 'menu',
+  'close': 'close',
+};
 
-  if (props.weight) {
-    style.fontVariationSettings = `'wght' ${props.weight}`;
-  }
-
+export default function Icon({ iconName, color = '#000', size = 24, ...props }) {
+  const mappedIconName = iconMap[iconName] || iconName;
+  
   return (
-    <span className={variantClass} style={style}>
-      {props.iconName}
-    </span>
+    <MaterialIcons
+      name={mappedIconName}
+      size={size}
+      color={color}
+      {...props}
+    />
   );
 }

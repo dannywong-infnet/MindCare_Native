@@ -1,289 +1,353 @@
-import { useState, useEffect, useContext } from "react";
-import styles from "./perfil-page.estilos.module.css";
-import "../../styles.css";
-import NavBar from "../../components/NavBar/NavBar";
-import UsuarioContext from "../../context/UsuarioContext";
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import NavBar from '../../components/NavBar/NavBar';
+import UsuarioContext from '../../context/UsuarioContext';
+import CampoInput from '../../components/CampoInput/CampoInput';
+import Botao from '../../components/Botao/Botao';
+import { loadPacientes } from '../../services/dataService';
+
+// Importar imagens estáticas
+const imagensPacientes = {
+  'amanda_silva.png': require('../../../assets/images/amanda_silva.png'),
+  'gabriel_machado.png': require('../../../assets/images/gabriel_machado.png'),
+};
+
+const imagensTerapeutas = {
+  'daniel_monteiro.png': require('../../../assets/images/daniel_monteiro.png'),
+  'erina_yoshida.png': require('../../../assets/images/erina_yoshida.png'),
+  'lucia_almeida.png': require('../../../assets/images/lucia_almeida.png'),
+  'marcos_souza.png': require('../../../assets/images/marcos_souza.png'),
+  'marina_campos.png': require('../../../assets/images/marina_campos.png'),
+  'rafael_oliveira.png': require('../../../assets/images/rafael_oliveira.png'),
+};
+
+// Função helper para resolver a imagem
+const getImageSource = (img) => {
+  if (!img) {
+    return { uri: 'https://i.pravatar.cc/300' };
+  }
+  
+  if (typeof img === 'string') {
+    // Se for URL completa
+    if (img.startsWith('http') || img.startsWith('https')) {
+      return { uri: img };
+    }
+    
+    // Extrair nome do arquivo
+    const fileName = img.includes('/') ? img.split('/').pop() : img;
+    
+    // Tentar encontrar nas imagens
+    if (imagensPacientes[fileName]) {
+      return imagensPacientes[fileName];
+    }
+    if (imagensTerapeutas[fileName]) {
+      return imagensTerapeutas[fileName];
+    }
+    
+    // Fallback para placeholder
+    return { uri: 'https://i.pravatar.cc/300' };
+  }
+  
+  return img;
+};
 
 export default function PerfilPage() {
-    // Armazena os dados do perfil do usuário.
-    const [userData, setUserData] = useState(null);
-    // Armazena os dados do formulário durante a edição.
-    const [formData, setFormData] = useState({});
-    // Controla a exibição entre o modo de visualização e edição.
-    const [editMode, setEditMode] = useState(false);
-    // Exibe mensagens de feedback para o usuário.
-    const [message, setMessage] = useState("");
+  const [userData, setUserData] = useState(null);
+  const [formData, setFormData] = useState({});
+  const [editMode, setEditMode] = useState(false);
+  const [message, setMessage] = useState('');
 
-    const { usuario } = useContext(UsuarioContext);
-    const user = usuario.nomeUsuario;
+  const { usuario } = useContext(UsuarioContext);
+  const user = usuario.nomeUsuario;
 
-    useEffect(() => {
-        // Busca dados do usuário do arquivo pacientes.json
-        const fetchUserData = async () => {
-            try {
-                const response = await fetch(`users/pacientes/pacientes.json`);
-                const data = await response.json();
-                const paciente = Array.isArray(data)
-                    ? data.find((p) => p.username === user)
-                    : (data && data[user]) || null;
-                
-                if (paciente) {
-                    const pacienteCompleto = {
-                        ...paciente,
-                        telefone: paciente.telefone || "",
-                        profissao: paciente.profissao || "",
-                        estadoCivil: paciente.estadoCivil || "",
-                        rua: paciente.rua || "",
-                        numero: paciente.numero || "",
-                        cep: paciente.cep || "",
-                        endereco: paciente.endereco || "",
-                    };
-                    setUserData(pacienteCompleto);
-                    setFormData(pacienteCompleto);
-                }
-            } catch (error) {
-                console.error("Erro ao buscar dados do usuário:", error);
-            }
-        };
-        
-        if (user) {
-            fetchUserData();
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const data = await loadPacientes();
+        const paciente = Array.isArray(data)
+          ? data.find((p) => p.username === user)
+          : (data && data[user]) || null;
+
+        if (paciente) {
+          const pacienteCompleto = {
+            ...paciente,
+            telefone: paciente.telefone || '',
+            profissao: paciente.profissao || '',
+            estadoCivil: paciente.estadoCivil || '',
+            rua: paciente.rua || '',
+            numero: paciente.numero || '',
+            cep: paciente.cep || '',
+            endereco: paciente.endereco || '',
+          };
+          setUserData(pacienteCompleto);
+          setFormData(pacienteCompleto);
         }
-    }, [user]);
+      } catch (error) {
+        console.error('Erro ao buscar dados do usuário:', error);
+      }
+    };
 
-    if (!userData) {
-        return (
-            <>
-                <NavBar />
-                <div>Carregando perfil...</div>
-            </>
-        );
+    if (user) {
+      fetchUserData();
     }
+  }, [user]);
 
-    // Atualiza o estado do formulário a cada mudança nos inputs.
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
-    };
-
-    // Salva as alterações do perfil.
-    const handleSave = () => {
-        console.log("Dados a serem salvos:", formData);
-        // TODO: Enviar dados para a API.
-        setUserData(formData);
-        setEditMode(false);
-        alert("Perfil atualizado com sucesso!");
-        setTimeout(() => setMessage(""), 3000);
-    };
-
-    // Cancela a edição e reverte as alterações.
-    const handleCancel = () => {
-        setFormData(userData);
-        setEditMode(false);
-        alert("Edição cancelada.");
-        setTimeout(() => setMessage(""), 3000);
-    };
-
-    // Ação para troca de senha.
-    const handleChangePassword = () => {
-        alert("Funcionalidade de troca de senha ativada!");
-    };
-
+  if (!userData) {
     return (
-        <>
-            <NavBar />
-            <div className={styles['perfil-container']}>
-                {/* O container interno, que funciona como a "caixa" do perfil*/}
-                <div className={styles['perfil-form-container']}>
-                    <img
-                        src={userData.img || "https://i.pravatar.cc/300"}
-                        alt="Imagem de Perfil"
-                        className={styles['perfil-img']}
-                    />
-                    <h2>
-                        {userData.nome} {userData.sobrenome}
-                    </h2> 
-                    {message && <p>{message}</p>}
-
-                    {/* Alterna entre modo de visualização e edição */}
-                    {!editMode ? (
-                        <div className={styles['perfil-dados']}>
-                            <p>
-                                <strong>Email:</strong> {userData.email}
-                            </p>
-                            <p>
-                                <strong>CPF:</strong> {userData.cpf}
-                            </p>
-                            <p>
-                                <strong>Gênero:</strong> {userData.genero || "Não informado"}
-                            </p>
-                            <p>
-                                <strong>Data de Nascimento:</strong>{" "}
-                                {userData.dataNascimento || "Não informada"}
-                            </p>
-                            <p>
-                                <strong>Telefone:</strong> {userData.telefone || "Não informado"}
-                            </p>
-                            <p>
-                                <strong>Profissão:</strong> {userData.profissao || "Não informada"}
-                            </p>
-                            <p>
-                                <strong>Estado Civil:</strong>{" "}
-                                {userData.estadoCivil || "Não informado"}
-                            </p>
-                            <p>
-                                <strong>Endereço:</strong>{" "}
-                                {userData.endereco || `${userData.rua || ""} ${userData.numero || ""}, ${userData.cidade || ""}, ${userData.estado || ""}`.trim() || "Não informado"}
-                            </p>
-                            <p>
-                                <strong>CEP:</strong>{" "}
-                                {userData.cep || "Não informado"}
-                            </p>
-                            <button className={styles.button} onClick={() => setEditMode(true)}>
-                                Editar Dados
-                            </button>
-                            <button className={styles.button} onClick={handleChangePassword}>
-                                Trocar Senha
-                            </button>
-                        </div>
-                    ) : (
-                        <form>
-                            {/* Campos do formulário para edição*/}
-                            <input
-                                className={styles.input}
-                                type="text"
-                                placeholder="Nome"
-                                name="nome"
-                                value={formData.nome}
-                                onChange={handleInputChange}
-                            />
-                            <input
-                                className={styles.input}
-                                type="text"
-                                placeholder="Sobrenome"
-                                name="sobrenome"
-                                value={formData.sobrenome}
-                                onChange={handleInputChange}
-                                />
-                                <input
-                                    className={styles.input}
-                                    type="cpf"
-                                    placeholder="CPF"
-                                    name="cpf"
-                                    value={formData.cpf}
-                                    onChange={handleInputChange}
-                                />
-                            <input
-                                className={styles.input}
-                                type="email"
-                                placeholder="Email"
-                                name="email"
-                                value={formData.email}
-                                onChange={handleInputChange}
-                            />
-                                <select
-                                    className={styles.select}
-                                    name="genero"
-                                    value={formData.genero}
-                                    onChange={handleInputChange}
-                                >
-                                    <option value="" disabled>Selecione o Gênero</option>
-                                    <option value="Masculino">Masculino</option>
-                                    <option value="Feminino">Feminino</option>
-                                    <option value="Outros">Outros</option>
-                                </select>
-                            <input
-                                className={styles.input}
-                                type="date"
-                                placeholder="Data de Nascimento"
-                                name="dataNascimento"
-                                value={formData.dataNascimento}
-                                onChange={handleInputChange}
-                            />
-                            <input
-                                className={styles.input}
-                                type="tel"
-                                placeholder="Telefone"
-                                name="telefone"
-                                value={formData.telefone}
-                                onChange={handleInputChange}
-                            />
-                            <input
-                                className={styles.input}
-                                type="text"
-                                placeholder="Profissão"
-                                name="profissao"
-                                value={formData.profissao}
-                                onChange={handleInputChange}
-                            />
-                                <select
-                                    className={styles.select}
-                                    name="estadoCivil"
-                                    value={formData.estadoCivil}
-                                    onChange={handleInputChange}
-                                >
-                                    <option value="" disabled>Selecione o Estado Civil</option>
-                                    <option value="Solteiro">Solteiro(a)</option>
-                                    <option value="Casado">Casado(a)</option>
-                                    <option value="Divorciado">Divorciado(a)</option>
-                                    <option value="Viúvo">Viúvo(a)</option>
-                                </select>
-                            <input
-                                className={styles.input}
-                                type="text"
-                                placeholder="Rua"
-                                name="rua"
-                                value={formData.rua || ""}
-                                onChange={handleInputChange}
-                            />
-                            <input
-                                className={styles.input}
-                                type="text"
-                                placeholder="Número"
-                                name="numero"
-                                value={formData.numero || ""}
-                                onChange={handleInputChange}
-                            />
-                            <input
-                                className={styles.input}
-                                type="text"
-                                placeholder="CEP"
-                                name="cep"
-                                value={formData.cep || ""}
-                                onChange={handleInputChange}
-                            />
-                            <input
-                                className={styles.input}
-                                type="text"
-                                placeholder="Cidade"
-                                name="cidade"
-                                value={formData.cidade || ""}
-                                onChange={handleInputChange}
-                            />
-                            <input
-                                className={styles.input}
-                                type="text"
-                                placeholder="Estado"
-                                name="estado"
-                                value={formData.estado || ""}
-                                onChange={handleInputChange}
-                            />
-                            {/* Botões de ação do formulário. */}
-                            <div className={styles['form-actions']}>
-                                <button type="button" className={`${styles.button} ${styles.actionButton}`} onClick={handleSave}>
-                                    Salvar
-                                </button>
-                                <button type="button" onClick={handleCancel} className={`${styles.button} ${styles.actionButton} ${styles.cancel}`}>
-                                    Cancelar
-                                </button>
-                            </div>
-                        </form>
-                    )}
-                </div>
-            </div>
-        </>
+      <>
+        <NavBar />
+        <View style={styles.loadingContainer}>
+          <Text>Carregando perfil...</Text>
+        </View>
+      </>
     );
+  }
+
+  const handleInputChange = (name, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSave = () => {
+    console.log('Dados a serem salvos:', formData);
+    setUserData(formData);
+    setEditMode(false);
+    Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  const handleCancel = () => {
+    setFormData(userData);
+    setEditMode(false);
+    Alert.alert('Cancelado', 'Edição cancelada.');
+    setTimeout(() => setMessage(''), 3000);
+  };
+
+  const handleChangePassword = () => {
+    Alert.alert('Trocar Senha', 'Funcionalidade de troca de senha ativada!');
+  };
+
+  return (
+    <>
+      <NavBar />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.perfilContainer}>
+            <View style={styles.perfilFormContainer}>
+              <View style={styles.perfilImgContainer}>
+                <Image 
+                  source={getImageSource(userData.img)}
+                  style={styles.perfilImg}
+                />
+              </View>
+              <Text style={styles.nomeCompleto}>
+                {userData.nome} {userData.sobrenome}
+              </Text>
+              {message ? <Text style={styles.message}>{message}</Text> : null}
+
+              {!editMode ? (
+                <View style={styles.perfilDados}>
+                  <Text style={styles.dado}>
+                    <Text style={styles.bold}>Email:</Text> {userData.email}
+                  </Text>
+                  <Text style={styles.dado}>
+                    <Text style={styles.bold}>CPF:</Text> {userData.cpf}
+                  </Text>
+                  <Text style={styles.dado}>
+                    <Text style={styles.bold}>Gênero:</Text> {userData.genero || 'Não informado'}
+                  </Text>
+                  <Text style={styles.dado}>
+                    <Text style={styles.bold}>Data de Nascimento:</Text> {userData.dataNascimento || 'Não informada'}
+                  </Text>
+                  <Text style={styles.dado}>
+                    <Text style={styles.bold}>Telefone:</Text> {userData.telefone || 'Não informado'}
+                  </Text>
+                  <Text style={styles.dado}>
+                    <Text style={styles.bold}>Profissão:</Text> {userData.profissao || 'Não informada'}
+                  </Text>
+                  <Text style={styles.dado}>
+                    <Text style={styles.bold}>Estado Civil:</Text> {userData.estadoCivil || 'Não informado'}
+                  </Text>
+                  <Text style={styles.dado}>
+                    <Text style={styles.bold}>Endereço:</Text>{' '}
+                    {userData.endereco ||
+                      `${userData.rua || ''} ${userData.numero || ''}, ${userData.cidade || ''}, ${userData.estado || ''}`.trim() ||
+                      'Não informado'}
+                  </Text>
+                  <Text style={styles.dado}>
+                    <Text style={styles.bold}>CEP:</Text> {userData.cep || 'Não informado'}
+                  </Text>
+                  <Botao onPress={() => setEditMode(true)} style={styles.button}>
+                    Editar Dados
+                  </Botao>
+                  <Botao onPress={handleChangePassword} style={styles.button}>
+                    Trocar Senha
+                  </Botao>
+                </View>
+              ) : (
+                <View style={styles.formContainer}>
+                  <CampoInput
+                    placeholder="Nome"
+                    value={formData.nome}
+                    onChangeText={(value) => handleInputChange('nome', value)}
+                  />
+                  <CampoInput
+                    placeholder="Sobrenome"
+                    value={formData.sobrenome}
+                    onChangeText={(value) => handleInputChange('sobrenome', value)}
+                  />
+                  <CampoInput
+                    placeholder="CPF"
+                    value={formData.cpf}
+                    onChangeText={(value) => handleInputChange('cpf', value)}
+                  />
+                  <CampoInput
+                    placeholder="Email"
+                    value={formData.email}
+                    onChangeText={(value) => handleInputChange('email', value)}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                  <CampoInput
+                    placeholder="Data de Nascimento (YYYY-MM-DD)"
+                    value={formData.dataNascimento}
+                    onChangeText={(value) => handleInputChange('dataNascimento', value)}
+                  />
+                  <CampoInput
+                    placeholder="Telefone"
+                    value={formData.telefone}
+                    onChangeText={(value) => handleInputChange('telefone', value)}
+                    keyboardType="phone-pad"
+                  />
+                  <CampoInput
+                    placeholder="Profissão"
+                    value={formData.profissao}
+                    onChangeText={(value) => handleInputChange('profissao', value)}
+                  />
+                  <CampoInput
+                    placeholder="Rua"
+                    value={formData.rua}
+                    onChangeText={(value) => handleInputChange('rua', value)}
+                  />
+                  <CampoInput
+                    placeholder="Número"
+                    value={formData.numero}
+                    onChangeText={(value) => handleInputChange('numero', value)}
+                  />
+                  <CampoInput
+                    placeholder="CEP"
+                    value={formData.cep}
+                    onChangeText={(value) => handleInputChange('cep', value)}
+                    keyboardType="numeric"
+                  />
+                  <CampoInput
+                    placeholder="Cidade"
+                    value={formData.cidade}
+                    onChangeText={(value) => handleInputChange('cidade', value)}
+                  />
+                  <CampoInput
+                    placeholder="Estado"
+                    value={formData.estado}
+                    onChangeText={(value) => handleInputChange('estado', value)}
+                  />
+                  <View style={styles.formActions}>
+                    <Botao onPress={handleSave} style={[styles.button, styles.actionButton]}>
+                      Salvar
+                    </Botao>
+                    <Botao onPress={handleCancel} style={[styles.button, styles.actionButton, styles.cancel]}>
+                      Cancelar
+                    </Botao>
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </>
+  );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  perfilContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  perfilFormContainer: {
+    width: '100%',
+    maxWidth: 500,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
+    padding: 20,
+    alignItems: 'center',
+    alignSelf: 'center',
+  },
+  perfilImgContainer: {
+    marginBottom: 20,
+  },
+  perfilImg: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+  },
+  nomeCompleto: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    fontFamily: 'Ubuntu',
+  },
+  message: {
+    color: 'green',
+    marginBottom: 10,
+  },
+  perfilDados: {
+    width: '100%',
+    gap: 10,
+  },
+  dado: {
+    fontSize: 14,
+    marginVertical: 5,
+    fontFamily: 'Ubuntu',
+  },
+  bold: {
+    fontWeight: 'bold',
+  },
+  button: {
+    marginTop: 10,
+    width: '100%',
+  },
+  formContainer: {
+    width: '100%',
+    gap: 12,
+    alignItems: 'center',
+  },
+  formActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
+  },
+  actionButton: {
+    flex: 1,
+  },
+  cancel: {
+    backgroundColor: '#999',
+  },
+});

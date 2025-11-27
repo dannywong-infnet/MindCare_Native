@@ -1,175 +1,181 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import styles from "./cadastro-page.module.css";
-import Logotipo from "../../components/Logotipo/Logotipo";
-import BannerCadastro from "../../components/BannerCadastro/BannerCadastro";
-import CampoInput from "../../components/CampoInput/CampoInput";
-import Botao from "../../components/Botao/Botao";
-import SelectGenero from "../../components/SelectGenero/SelectGenero";
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import Logotipo from '../../components/Logotipo/Logotipo';
+import BannerCadastro from '../../components/BannerCadastro/BannerCadastro';
+import CampoInput from '../../components/CampoInput/CampoInput';
+import Botao from '../../components/Botao/Botao';
+import SelectGenero from '../../components/SelectGenero/SelectGenero';
 
-export default function CadastroPage({ goToPage }) {
-  const [inputNome, setInputNome] = useState("");
-  const [inputSobrenome, setInputSobrenome] = useState("");
-  const [inputCPF, setInputCPF] = useState("");
-  const [inputDataNascimento, setInputDataNascimento] = useState("");
-  const [inputGenero, setInputGenero] = useState("");
-  const [inputEmail, setInputEmail] = useState("");
-  const [inputPassword, setInputPassword] = useState("");
-  const [inputRePassword, setInputRePassword] = useState("");
+export default function CadastroPage() {
+  const [inputNome, setInputNome] = useState('');
+  const [inputSobrenome, setInputSobrenome] = useState('');
+  const [inputCPF, setInputCPF] = useState('');
+  const [inputDataNascimento, setInputDataNascimento] = useState('');
+  const [inputGenero, setInputGenero] = useState('');
+  const [inputEmail, setInputEmail] = useState('');
+  const [inputPassword, setInputPassword] = useState('');
+  const [inputRePassword, setInputRePassword] = useState('');
   const [isLoading, setLoading] = useState(false);
-  const [cpfMessage, setCpfMessage] = useState("");
-  const [senhaMessage, setSenhaMessage] = useState("");
+  const [cpfMessage, setCpfMessage] = useState('');
+  const [senhaMessage, setSenhaMessage] = useState('');
 
-  const navigate = useNavigate();
+  const navigation = useNavigation();
 
-  const onChangeNome = (e) => setInputNome(e.target.value);
-  const onChangeSobrenome = (e) => setInputSobrenome(e.target.value);
-  const onChangeCPF = (e) => {
-    // REGEX: remove tudo que não é número
-    let valor = e.target.value.replace(/\D/g, "");
-
-    // Limita a 11 números
+  const formatCPF = (value) => {
+    let valor = value.replace(/\D/g, '');
     if (valor.length > 11) valor = valor.slice(0, 11);
-
-    // Aplica máscara: 000.000.000-00
-    if (valor.length > 3) valor = valor.replace(/^(\d{3})(\d)/, "$1.$2");
-    if (valor.length > 6)
-      valor = valor.replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3");
-    if (valor.length > 9)
-      valor = valor.replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3-$4");
-
-    setInputCPF(valor);
+    if (valor.length > 3) valor = valor.replace(/^(\d{3})(\d)/, '$1.$2');
+    if (valor.length > 6) valor = valor.replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3');
+    if (valor.length > 9) valor = valor.replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
+    return valor;
   };
 
-  const onChangeDataNascimento = (e) => setInputDataNascimento(e.target.value);
-  const onChangeGenero = (e) => setInputGenero(e.target.value);
-  const onChangeEmail = (e) => setInputEmail(e.target.value);
-  const onChangePassword = (e) => setInputPassword(e.target.value);
-  const onChangeRePassword = (e) => setInputRePassword(e.target.value);
+  const onChangeCPF = (value) => {
+    setInputCPF(formatCPF(value));
+  };
 
-  const onSubmitCadastrar = (e) => {
-    e.preventDefault();
+  const onSubmitCadastrar = () => {
     let valid = true;
 
-    // Validação senha
     if (inputPassword !== inputRePassword) {
-      setSenhaMessage("As senhas não conferem.");
+      setSenhaMessage('As senhas não conferem.');
       valid = false;
     } else {
-      setSenhaMessage("");
+      setSenhaMessage('');
     }
 
-    // Validação CPF
-    if (inputCPF.replace(/\D/g, "").length !== 11) {
-      setCpfMessage("O CPF deve conter 11 números.");
+    if (inputCPF.replace(/\D/g, '').length !== 11) {
+      setCpfMessage('O CPF deve conter 11 números.');
       valid = false;
     } else {
-      setCpfMessage("");
+      setCpfMessage('');
     }
 
     if (!valid) return;
 
-    navigate("/", { replace: true });
+    setLoading(true);
+    // Simular cadastro
+    setTimeout(() => {
+      setLoading(false);
+      Alert.alert('Sucesso', 'Cadastro realizado com sucesso!');
+      navigation.replace('Login');
+    }, 1000);
   };
 
   return (
-    <>
-      <div className={styles.cadastroContainer}>
-        <Logotipo />
-        <BannerCadastro
-          titulo="Seja bem vindo(a)!"
-          subtitulo="Insira seus dados para realizar o cadastro:"
-        />
-        <form
-          className={styles.cadastroFormContainer}
-          onSubmit={onSubmitCadastrar}
-        >
-          <CampoInput
-            type="text"
-            placeholder="Nome"
-            name="nome"
-            id="nome"
-            autoComplete={"off"}
-            value={inputNome}
-            onChange={onChangeNome}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.cadastroContainer}>
+          <Logotipo />
+          <BannerCadastro
+            titulo="Seja bem vindo(a)!"
+            subtitulo="Insira seus dados para realizar o cadastro:"
           />
+          <View style={styles.cadastroFormContainer}>
+            <CampoInput
+              placeholder="Nome"
+              value={inputNome}
+              onChangeText={setInputNome}
+              autoCapitalize="words"
+            />
 
-          <CampoInput
-            type="text"
-            placeholder="Sobrenome"
-            name="sobrenome"
-            id="sobrenome"
-            autoComplete={"off"}
-            value={inputSobrenome}
-            onChange={onChangeSobrenome}
-          />
+            <CampoInput
+              placeholder="Sobrenome"
+              value={inputSobrenome}
+              onChangeText={setInputSobrenome}
+              autoCapitalize="words"
+            />
 
-          <CampoInput
-            type="text"
-            placeholder="CPF"
-            name="cpf"
-            id="cpf"
-            autoComplete="off"
-            value={inputCPF}
-            onChange={onChangeCPF}
-          />
+            <CampoInput
+              placeholder="CPF"
+              value={inputCPF}
+              onChangeText={onChangeCPF}
+              keyboardType="numeric"
+            />
 
-          {cpfMessage && <p className={styles.mensagemErro}>{cpfMessage}</p>}
+            {cpfMessage ? <Text style={styles.mensagemErro}>{cpfMessage}</Text> : null}
 
-          <CampoInput
-            type="date"
-            placeholder="Data de Nascimento"
-            name="data_de_nascimento"
-            id="data_de_nascimento"
-            value={inputDataNascimento}
-            onChange={onChangeDataNascimento}
-            min="1900-01-01"
-            max="2025-12-31"
-          />
+            <CampoInput
+              placeholder="Data de Nascimento (YYYY-MM-DD)"
+              value={inputDataNascimento}
+              onChangeText={setInputDataNascimento}
+            />
 
-          <SelectGenero
-            id="genero"
-            name="genero"
-            value={inputGenero}
-            onChange={onChangeGenero}
-          />
+            <SelectGenero
+              value={inputGenero}
+              onChange={setInputGenero}
+            />
 
-          <CampoInput
-            type="email"
-            placeholder="E-mail"
-            name="email"
-            id="email"
-            autoComplete={"off"}
-            value={inputEmail}
-            onChange={onChangeEmail}
-          />
+            <CampoInput
+              placeholder="E-mail"
+              value={inputEmail}
+              onChangeText={setInputEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
 
-          <CampoInput
-            type="password"
-            placeholder="Senha"
-            name="senha"
-            id="senha"
-            value={inputPassword}
-            onChange={onChangePassword}
-          />
+            <CampoInput
+              placeholder="Senha"
+              value={inputPassword}
+              onChangeText={setInputPassword}
+              secureTextEntry
+              autoCapitalize="none"
+            />
 
-          <CampoInput
-            type="password"
-            placeholder="Confirmar senha"
-            name="senha"
-            id="senha"
-            value={inputRePassword}
-            onChange={onChangeRePassword}
-          />
-          {senhaMessage && (
-            <p className={styles.mensagemErro}>{senhaMessage}</p>
-          )}
+            <CampoInput
+              placeholder="Confirmar senha"
+              value={inputRePassword}
+              onChangeText={setInputRePassword}
+              secureTextEntry
+              autoCapitalize="none"
+            />
+            
+            {senhaMessage ? <Text style={styles.mensagemErro}>{senhaMessage}</Text> : null}
 
-          <Botao type="submit" disabled={isLoading}>
-            Cadastrar
-          </Botao>
-        </form>
-      </div>
-    </>
+            <Botao onPress={onSubmitCadastrar} disabled={isLoading}>
+              Cadastrar
+            </Botao>
+          </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 20,
+  },
+  cadastroContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 25,
+    marginVertical: 40,
+  },
+  cadastroFormContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    maxWidth: '90%',
+    width: '100%',
+    gap: 12,
+    alignSelf: 'center',
+  },
+  mensagemErro: {
+    color: 'red',
+    fontSize: 12,
+    width: '90%',
+    textAlign: 'center',
+  },
+});
